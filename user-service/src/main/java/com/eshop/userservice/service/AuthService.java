@@ -1,6 +1,7 @@
 package com.eshop.userservice.service;
 
 import com.eshop.userservice.dto.AuthRequest;
+import com.eshop.userservice.dto.AuthResponse;
 import com.eshop.userservice.dto.RegisterRequest;
 import com.eshop.userservice.entity.User;
 import com.eshop.userservice.repository.UserRepository;
@@ -34,14 +35,50 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    public String authenticate(AuthRequest request) {
-        System.out.println("authservice "+request.getEmail());
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("NOT FOUND"));
+//    public String authenticate(AuthRequest request) {
+//        System.out.println("authservice "+request.getEmail());
+//        User user = userRepository.findByEmail(request.getEmail())
+//                .orElseThrow(() -> new RuntimeException("NOT FOUND"));
+//
+//        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+//            throw new RuntimeException("NOT FOUND P");
+//        }
+//        return jwtService.generateToken(user.getEmail());
+//    }
+public AuthResponse authenticate(AuthRequest request) {
+    User user = userRepository.findByEmail(request.getEmail())
+            .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("NOT FOUND P");
-        }
-        return jwtService.generateToken(user.getEmail());
+    if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+        throw new RuntimeException("Mot de passe incorrect");
     }
+
+    String accessToken = jwtService.generateToken(user.getEmail());
+    String refreshToken = jwtService.generateRefreshToken(user.getEmail());
+
+    user.setRefreshToken(refreshToken);
+    userRepository.save(user);
+
+    return new AuthResponse(accessToken, refreshToken);
+    }
+    public AuthResponse refreshToken(String refreshToken) {
+        String email = jwtService.extractUsername(refreshToken);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        if (!refreshToken.equals(user.getRefreshToken())) {
+            throw new RuntimeException("Refresh token invalide ou expiré");
+        }
+
+        String newAccessToken = jwtService.generateToken(email);
+        String newRefreshToken = jwtService.generateRefreshToken(email);
+
+        user.setRefreshToken(newRefreshToken);
+        userRepository.save(user);
+
+        return new AuthResponse(newAccessToken, newRefreshToken);
+    }
+
+
 }

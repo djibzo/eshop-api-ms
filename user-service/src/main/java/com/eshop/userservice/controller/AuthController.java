@@ -1,6 +1,7 @@
 package com.eshop.userservice.controller;
 import com.eshop.userservice.dto.AuthRequest;
 import com.eshop.userservice.dto.AuthResponse;
+import com.eshop.userservice.dto.RefreshTokenRequest;
 import com.eshop.userservice.dto.RegisterRequest;
 import com.eshop.userservice.entity.User;
 import com.eshop.userservice.repository.UserRepository;
@@ -29,8 +30,8 @@ public class AuthController {
 
     @PostMapping(value = "/login")
     public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request) {
-        String token = authService.authenticate(request);
-        return ResponseEntity.ok(new AuthResponse(token));
+        AuthResponse authResponse = authService.authenticate(request);
+        return ResponseEntity.ok(authResponse);
     }
     @GetMapping("/me")
     public ResponseEntity<RegisterRequest> me(Authentication authentication) {
@@ -38,10 +39,13 @@ public class AuthController {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
-        RegisterRequest userDTO = new RegisterRequest(user.getEmail(), user.getUsername(), user.getRole());
+        RegisterRequest userDTO = new RegisterRequest(user.getEmail(), user.getRole(), user.getUsername());
         return ResponseEntity.ok(userDTO);
     }
-
+    @PostMapping("/token")
+    public ResponseEntity<AuthResponse> refreshToken(@RequestBody RefreshTokenRequest request) {
+        return ResponseEntity.ok(authService.refreshToken(request.getRefreshToken()));
+    }
 
 }
 
