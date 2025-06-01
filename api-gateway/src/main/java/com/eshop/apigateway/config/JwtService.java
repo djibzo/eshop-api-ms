@@ -40,8 +40,9 @@ public class JwtService {
     }
     public boolean validateToken(String token) {
         try {
+            Key key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
             Jwts.parserBuilder()
-                    .setSigningKey(secret)
+                    .setSigningKey(key)
                     .build()
                     .parseClaimsJws(token);
             return true;
